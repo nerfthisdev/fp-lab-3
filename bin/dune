@@ -1,0 +1,4 @@
+(executable
+ (public_name fp-lab-3)
+ (name main)
+ (libraries fp_lab_3))
