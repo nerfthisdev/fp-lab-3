@@ -1,4 +1,4 @@
-open Types
+open Common
 
 let normalize_seps (s : string) =
   let b = Bytes.of_string s in

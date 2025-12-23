@@ -1,5 +1,5 @@
 open Fp_lab_3
-open Types
+open Common
 
 let float_eps = 1e-9
 

@@ -1,22 +1,25 @@
 open Fp_lab_3
-open Types
 
-type config = {
-  step : float;
-  use_linear : bool;
-  use_newton : bool;
-  newton_n : int;
-}
+type method_kind =
+  | Linear
+  | Newton
+
+type config = { step : float; methods : method_kind list; newton_n : int }
 
 let default_config =
-  { step = 1.0; use_linear = false; use_newton = false; newton_n = 4 }
+  { step = 1.0; methods = []; newton_n = 4 }
 
 let () =
   let cfg = ref default_config in
 
+  let add_method m cfg =
+    if List.mem m cfg.methods then cfg
+    else { cfg with methods = cfg.methods @ [ m ] }
+  in
+
   let set_step s = cfg := { !cfg with step = s } in
-  let set_linear () = cfg := { !cfg with use_linear = true } in
-  let set_newton () = cfg := { !cfg with use_newton = true } in
+  let set_linear () = cfg := add_method Linear !cfg in
+  let set_newton () = cfg := add_method Newton !cfg in
   let set_newton_n n = cfg := { !cfg with newton_n = n } in
 
   let specs =
@@ -31,38 +34,35 @@ let () =
   let usage = "my_lab3 [--linear] [--newton -n N] --step S < input" in
   Arg.parse specs (fun _ -> ()) usage;
 
-  if (not (!cfg).use_linear) && (not (!cfg).use_newton) then (
+  if (!cfg).methods = [] then (
     prerr_endline "Error: choose at least one algorithm: --linear and/or --newton";
     exit 2);
 
   (* Build engines list *)
   let engines =
-    let acc = ref [] in
-    if (!cfg).use_linear then acc := Linear.create ~step:(!cfg).step :: !acc;
-    if (!cfg).use_newton then
-      acc := Newton.create ~step:(!cfg).step ~n:(!cfg).newton_n :: !acc;
-    List.rev !acc
+    List.map
+      (function
+        | Linear -> Linear.create ~step:(!cfg).step
+        | Newton -> Newton.create ~step:(!cfg).step ~n:(!cfg).newton_n)
+      (!cfg).methods
   in
 
   (* Streaming loop:
      For each incoming point, push it into every engine and print what they emit *)
   let points = Io.read_points_seq () in
 
-  let rec consume (engs : Engine.t list) (seq : point Seq.t) =
-    match seq () with
-    | Seq.Nil ->
-        (* EOF: flush all engines *)
-        List.iter (fun e -> Io.print_many (Engine.flush e)) engs
-    | Seq.Cons (p, tl) ->
-        let engs', outs =
-          List.fold_left
-            (fun (es, all_outs) e ->
-              let e', out = Engine.push e p in
-              (es @ [ e' ], all_outs @ out))
-            ([], []) engs
-        in
-        Io.print_many outs;
-        consume engs' tl
-  in
+  let engines = ref engines in
+  Seq.iter
+    (fun p ->
+      let engs', outs_rev =
+        List.fold_left
+          (fun (rev_es, rev_outs) e ->
+            let e', out = Engine.push e p in
+            (e' :: rev_es, List.rev_append out rev_outs))
+          ([], []) !engines
+      in
+      engines := List.rev engs';
+      Io.print_many (List.rev outs_rev))
+    points;
 
-  consume engines points
+  List.iter (fun e -> Io.print_many (Engine.flush e)) !engines

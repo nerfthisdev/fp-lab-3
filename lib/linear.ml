@@ -1,4 +1,4 @@
-open Types
+open Common
 open Engine
 
 let eval (a : point) (b: point) (x: float) : float =
