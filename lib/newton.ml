@@ -45,11 +45,7 @@ let eval_newton (pts : point array) (coeffs : float array) (x : float) : float =
   !acc
 
 let interval_responsibility (pts : point array) : float * float =
-  (* "centered" responsibility for streaming windows:
-     for n>=4: use [x_{mid-1}, x_{mid}] as main interval
-     for n=3:  use [x0, x2] (no strong center)
-     for n=2:  degenerates (but we won't use newton n=2 usually)
-  *)
+
   let n = Array.length pts in
   if n <= 2 then (pts.(0).x, pts.(n - 1).x)
   else if n = 3 then (pts.(0).x, pts.(2).x)
@@ -72,9 +68,7 @@ let outputs_for_window (st : state) : state * out_point list =
           | None -> pts.(0).x
           | Some c -> c
         in
-        (* We only emit inside [cursor, r] if cursor is within current responsibility.
-           For the very first full window, cursor starts at x0 and r might be "center",
-           so we will naturally emit the first chunk. *)
+
         let from_x = max cursor l in
         let to_x = r in
         if from_x > to_x +. eps then
@@ -105,8 +99,7 @@ let create ~(step : float) ~(n : int) : Engine.t =
     (st2, outs)
   in
   let flush st =
-    (* On EOF: output remaining tail using the last available window:
-       we emit from current cursor to the last x in the window. *)
+
     if List.length st.window < n then []
     else
       let pts = Array.of_list st.window in
