@@ -1,17 +1,14 @@
 open Types
 open Engine
 
-type state = {
-  step : float;
-  n : int;
-  window : point list;
-  cursor : float option;
-  last_emittable : float option;
-}
-
 let take_last_n (n : int) (xs : 'a list) : 'a list =
   let len = List.length xs in
   if len <= n then xs else List.drop (len - n) xs
+
+let get_n (st : state) : int =
+  match st.n with
+  | Some n -> n
+  | None -> invalid_arg "newton state missing n"
 
 let divided_differences_coeffs (pts : point array) : float array =
 
@@ -58,7 +55,8 @@ let outputs_for_window (st : state) : state * out_point list =
   match st.window with
   | [] | [ _ ] -> (st, [])
   | _ ->
-      if List.length st.window < st.n then (st, [])
+      let n = get_n st in
+      if List.length st.window < n then (st, [])
       else
         let pts = Array.of_list st.window in
         let coeffs = divided_differences_coeffs pts in
@@ -116,5 +114,14 @@ let create ~(step : float) ~(n : int) : Engine.t =
         xs
         |> List.map (fun x -> { algo = "newton"; x; y = eval_newton pts coeffs x })
   in
-  let st0 = { step; n; window = []; cursor = None; last_emittable = None } in
+  let st0 =
+    {
+      step;
+      prev = None;
+      cursor = None;
+      n = Some n;
+      window = [];
+      last_emittable = None;
+    }
+  in
   Engine.E { name = "newton"; state = st0; push; flush }

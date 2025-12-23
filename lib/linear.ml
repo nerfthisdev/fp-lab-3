@@ -1,11 +1,6 @@
 open Types
 open Engine
 
-type state = {
-  step: float;
-  prev : point option;
-  cursor : float option;
-}
 let eval (a : point) (b: point) (x: float) : float =
   let dx = b.x -. a.x in
   if abs_float dx < eps then a.y
@@ -46,5 +41,14 @@ let create ~(step : float) : Engine.t =
         let st2, outs = segment_outputs st1 a p in
         (st2, outs)
   in
-  let st0 = { step; prev = None; cursor = None } in
+  let st0 =
+    {
+      step;
+      prev = None;
+      cursor = None;
+      n = None;
+      window = [];
+      last_emittable = None;
+    }
+  in
   Engine.E { name = "linear"; state = st0; push; flush = flush_outputs }

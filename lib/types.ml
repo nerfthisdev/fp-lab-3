@@ -6,3 +6,12 @@ type out_point = {
 }
 
 let eps = 1e-12
+
+type state = {
+  step : float;
+  prev : point option;
+  cursor : float option;
+  n : int option;
+  window : point list;
+  last_emittable : float option;
+}
