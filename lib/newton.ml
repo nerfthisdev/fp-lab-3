@@ -97,36 +97,31 @@ let outputs_for_window (st : state) : state * out_point list =
 
 let create ~(step : float) ~(n : int) : Engine.t =
   if n < 3 then invalid_arg "--newton -n must be >= 3";
-  let rec make (st : state) : Engine.t =
-    {
-      name = "newton";
-      push =
-        (fun p ->
-          let w = st.window @ [ p ] in
-          let w = if List.length w > n then take_last_n n w else w in
-          let st1 = { st with window = w } in
-          let st2, outs = outputs_for_window st1 in
-          (make st2, outs));
-      flush =
-        (fun () ->
-          (* On EOF: output remaining tail using the last available window:
-             we emit from current cursor to the last x in the window. *)
-          if List.length st.window < n then []
-          else
-            let pts = Array.of_list st.window in
-            let coeffs = divided_differences_coeffs pts in
-            let last_x = pts.(Array.length pts - 1).x in
-            let cursor =
-              match st.cursor with
-              | None -> pts.(0).x
-              | Some c -> c
-            in
-            if cursor > last_x +. eps then []
-            else
-              let xs = Engine.gen_xs ~step:st.step ~from_x:cursor ~to_x:last_x in
-              xs
-              |> List.map (fun x ->
-                     { algo = "newton"; x; y = eval_newton pts coeffs x }));
-    }
+  let push st p =
+    let w = st.window @ [ p ] in
+    let w = if List.length w > n then take_last_n n w else w in
+    let st1 = { st with window = w } in
+    let st2, outs = outputs_for_window st1 in
+    (st2, outs)
   in
-  make { step; n; window = []; cursor = None; last_emittable = None }
+  let flush st =
+    (* On EOF: output remaining tail using the last available window:
+       we emit from current cursor to the last x in the window. *)
+    if List.length st.window < n then []
+    else
+      let pts = Array.of_list st.window in
+      let coeffs = divided_differences_coeffs pts in
+      let last_x = pts.(Array.length pts - 1).x in
+      let cursor =
+        match st.cursor with
+        | None -> pts.(0).x
+        | Some c -> c
+      in
+      if cursor > last_x +. eps then []
+      else
+        let xs = Engine.gen_xs ~step:st.step ~from_x:cursor ~to_x:last_x in
+        xs
+        |> List.map (fun x -> { algo = "newton"; x; y = eval_newton pts coeffs x })
+  in
+  let st0 = { step; n; window = []; cursor = None; last_emittable = None } in
+  Engine.E { name = "newton"; state = st0; push; flush }

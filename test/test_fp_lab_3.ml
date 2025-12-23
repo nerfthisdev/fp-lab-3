@@ -25,9 +25,9 @@ let test_linear_eval () =
 
 let test_linear_stream () =
   let e0 = Linear.create ~step:1.0 in
-  let e1, outs1 = e0.Engine.push { x = 0.0; y = 0.0 } in
+  let e1, outs1 = Engine.push e0 { x = 0.0; y = 0.0 } in
   Alcotest.(check int) "no output after first point" 0 (List.length outs1);
-  let _e2, outs2 = e1.Engine.push { x = 2.0; y = 2.0 } in
+  let _e2, outs2 = Engine.push e1 { x = 2.0; y = 2.0 } in
   let pairs = List.map (fun o -> (o.x, o.y)) outs2 in
   check_pair_list "linear outputs 0..2 step 1" [ (0.0, 0.0); (1.0, 1.0); (2.0, 2.0) ] pairs
 
@@ -39,11 +39,11 @@ let test_newton_eval () =
 
 let test_newton_stream () =
   let e0 = Newton.create ~step:1.0 ~n:3 in
-  let e1, outs1 = e0.Engine.push { x = 0.0; y = 0.0 } in
-  let e2, outs2 = e1.Engine.push { x = 1.0; y = 1.0 } in
+  let e1, outs1 = Engine.push e0 { x = 0.0; y = 0.0 } in
+  let e2, outs2 = Engine.push e1 { x = 1.0; y = 1.0 } in
   Alcotest.(check int) "no output after first point" 0 (List.length outs1);
   Alcotest.(check int) "no output after second point" 0 (List.length outs2);
-  let _e3, outs3 = e2.Engine.push { x = 2.0; y = 4.0 } in
+  let _e3, outs3 = Engine.push e2 { x = 2.0; y = 4.0 } in
   let pairs = List.map (fun o -> (o.x, o.y)) outs3 in
   check_pair_list "newton outputs 0..2 step 1" [ (0.0, 0.0); (1.0, 1.0); (2.0, 4.0) ] pairs
 

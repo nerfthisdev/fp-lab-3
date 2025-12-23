@@ -52,12 +52,12 @@ let () =
     match seq () with
     | Seq.Nil ->
         (* EOF: flush all engines *)
-        List.iter (fun e -> Io.print_many (e.Engine.flush ())) engs
+        List.iter (fun e -> Io.print_many (Engine.flush e)) engs
     | Seq.Cons (p, tl) ->
         let engs', outs =
           List.fold_left
             (fun (es, all_outs) e ->
-              let e', out = e.Engine.push p in
+              let e', out = Engine.push e p in
               (es @ [ e' ], all_outs @ out))
             ([], []) engs
         in
